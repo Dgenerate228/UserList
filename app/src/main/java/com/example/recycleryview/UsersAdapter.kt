@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputBinding
 import android.widget.PopupMenu
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.recycleryview.databinding.ItemUserBinding
@@ -17,7 +18,30 @@ interface UserActionListener {
 
     fun onUserDelete(user: User)
 
+    fun onUserFire(user: User)
+
     fun onUserDetails(user: User)
+}
+
+class UsersDiffCallback(
+    private val oldlist: List<User>,
+    private val newlist: List<User>
+) : DiffUtil.Callback() {
+    override fun getOldListSize(): Int = oldlist.size
+
+    override fun getNewListSize(): Int = newlist.size
+
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        val oldUser = oldlist[oldItemPosition]
+        val newUser = newlist[newItemPosition]
+        return oldUser.id == newUser.id
+    }
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        val oldUser = oldlist[oldItemPosition]
+        val newUser = newlist[newItemPosition]
+        return oldUser == newUser
+    }
 }
 
 class UsersAdapter(
@@ -26,8 +50,10 @@ class UsersAdapter(
 
     var users: List<User> = emptyList()
         set(newValue) {
+            val diffCallback = UsersDiffCallback(field, newValue)
+            val diffResult = DiffUtil.calculateDiff(diffCallback)
             field = newValue
-            notifyDataSetChanged()
+            diffResult.dispatchUpdatesTo(this)
         }
 
     override fun onClick(v: View) {
@@ -56,11 +82,14 @@ class UsersAdapter(
 
     override fun onBindViewHolder(holder: UsersViewHolder, position: Int) {
         val user = users[position]
+        val context = holder.itemView.context
         with(holder.binding) {
             holder.itemView.tag = user
             moreImageViewButton.tag = user
             userNameTextView.text = user.name
-            userCompanyTextView.text = user.company
+
+            userCompanyTextView.text =
+                if (user.company.isNotBlank()) user.company else context.getString(R.string.unemployed)
             if (user.photo.isNotBlank()) {
                 Glide.with(photoImageView.context)
                     .load(user.photo)
@@ -90,6 +119,10 @@ class UsersAdapter(
                 isEnabled = position < users.size - 1
             }
         popupMenu.menu.add(0, ID_REMOVE, Menu.NONE, context.getString(R.string.remove))
+        if (user.company.isNotBlank()) {
+            popupMenu.menu.add(0, ID_FIRE, Menu.NONE, context.getString(R.string.fire))
+        }
+
 
         popupMenu.setOnMenuItemClickListener {
             when (it.itemId) {
@@ -101,6 +134,9 @@ class UsersAdapter(
                 }
                 ID_REMOVE -> {
                     actionListener.onUserDelete(user)
+                }
+                ID_FIRE -> {
+                    actionListener.onUserFire(user)
                 }
             }
             return@setOnMenuItemClickListener true
@@ -118,6 +154,7 @@ class UsersAdapter(
         private const val ID_MOVE_UP = 1
         private const val ID_MOVE_DOWN = 2
         private const val ID_REMOVE = 3
+        private const val ID_FIRE = 4
     }
 
 }
