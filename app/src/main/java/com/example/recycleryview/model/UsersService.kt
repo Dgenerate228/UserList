@@ -5,6 +5,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 typealias  UsersListener = (users: List<User>) -> Unit
+
 class UsersService {
 
     private var users = mutableListOf<User>()
@@ -38,7 +39,7 @@ class UsersService {
         }
     }
 
-    fun moveUser (user: User, moveBy: Int) {
+    fun moveUser(user: User, moveBy: Int) {
         val oldIndex = users.indexOfFirst { it.id == user.id }
         if (oldIndex == -1) return
         val newIndex = oldIndex + moveBy
